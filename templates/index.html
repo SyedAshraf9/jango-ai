@@ -187,6 +187,7 @@
     <div class="controls">
     <button class="btn btn-primary" onclick="startListening()">🎙️ Start</button>
     <button class="btn" onclick="stopListening()">⏹️ Stop</button>
+    <button class="btn" onclick="testChat()">🧪 Test AI</button>
     <button class="btn" onclick="clearChat()">🗑️ Clear</button>
 </div>
 
@@ -271,7 +272,17 @@
             recognition = initSpeech();
             if (recognition) {
                 beep(520, 0.12);
-                recognition.start();
+                try {
+    recognition.stop();
+} catch(e) {}
+
+setTimeout(() => {
+    try {
+        recognition.start();
+    } catch(e) {
+        console.log(e);
+    }
+}, 200);
             }
         }
         
@@ -395,6 +406,9 @@
     } catch (e) {
         console.log(e);
     }
+    async function testChat() {
+    await handleCommand("hello jango");
+    }
 }
 
 function stopListening() {
@@ -405,6 +419,9 @@ function stopListening() {
         try {
             recognition.stop();
         } catch (e) {}
+    }
+    async function testChat() {
+    await handleCommand("hello jango");
     }
 }
 
