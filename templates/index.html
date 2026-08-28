@@ -241,6 +241,7 @@
                 console.log('Mic error:', e.error);
             };
             rec.onresult = (e) => {
+                alert("VOICE DETECTED");
                 const res = e.results[e.results.length - 1];
                 const text = res[0].transcript.toLowerCase().trim();
                 
