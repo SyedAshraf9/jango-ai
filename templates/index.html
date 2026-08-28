@@ -228,7 +228,10 @@
             rec.interimResults = true;
             rec.lang = 'en-US';
             
-            rec.onstart = () => updateUI();
+           rec.onstart = () => {
+               alert("MIC STARTED");
+               updateUI();
+           };
             rec.onend = () => {
                 updateUI();
                 if (isAwake) setTimeout(() => { if (isAwake && recognition && !isListening()) recognition.start(); }, 400);
