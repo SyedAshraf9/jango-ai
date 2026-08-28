@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Jango</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: #050508;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .header {
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid #1a1a2e;
+        }
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p { color: #555; font-size: 13px; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+        
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .orb {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #1a1a3e, #0a0a1a);
+            border: 2px solid #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 56px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 0 0 rgba(102,126,234,0);
+        }
+        .orb.sleeping { border-color: #333; opacity: 0.6; }
+        .orb.listening { 
+            border-color: #667eea; 
+            box-shadow: 0 0 40px rgba(102,126,234,0.3), inset 0 0 20px rgba(102,126,234,0.1);
+            animation: breathe 2s ease-in-out infinite;
+        }
+        .orb.thinking { 
+            border-color: #f093fb; 
+            box-shadow: 0 0 40px rgba(240,147,251,0.3);
+            animation: spin 3s linear infinite;
+        }
+        .orb.speaking { 
+            border-color: #4facfe; 
+            box-shadow: 0 0 40px rgba(79,172,254,0.3);
+            animation: bounce 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        
+        .status {
+            margin-top: 24px;
+            text-align: center;
+        }
+        .status .main-text { font-size: 20px; font-weight: 600; color: #fff; }
+        .status .sub-text { font-size: 14px; color: #666; margin-top: 6px; }
+        
+        .chat-area {
+            position: absolute;
+            bottom: 90px;
+            left: 16px;
+            right: 16px;
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-bottom: 10px;
+        }
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            max-width: 85%;
+            font-size: 15px;
+            line-height: 1.35;
+            word-wrap: break-word;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .bubble.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .bubble.ai {
+            align-self: flex-start;
+            background: #12121f;
+            color: #ddd;
+            border: 1px solid #2a2a3e;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .controls {
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            border-top: 1px solid #1a1a2e;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #151520;
+            color: #888;
+            border: 1px solid #2a2a3e;
+        }
+        .btn:active { transform: scale(0.92); opacity: 0.8; }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5,5,8,0.97);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 30px;
+            text-align: center;
+        }
+        .overlay h2 { font-size: 26px; margin-bottom: 12px; }
+        .overlay p { color: #666; font-size: 15px; line-height: 1.5; margin-bottom: 32px; max-width: 300px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎙️ Jango</h1>
+        <p>Voice AI Fam</p>
+    </div>
+    
+    <div class="overlay" id="startOverlay">
+        <h2>Tap to Wake Jango</h2>
+        <p>iPhone needs a tap to start the microphone.<br>After this, everything is voice-controlled.</p>
+        <button class="btn btn-primary" onclick="startJango()" style="font-size:18px;padding:14px 32px;">Wake Up</button>
+    </div>
+    
+    <div class="main">
+        <div class="orb sleeping" id="orb">😴</div>
+        <div class="status">
+            <div class="main-text" id="statusMain">Jango is sleeping</div>
+            <div class="sub-text" id="statusSub">Say "Hey Jango" to wake me up</div>
+        </div>
+        <div class="chat-area" id="chatArea"></div>
+    </div>
+    
+    <div class="controls">
+        <button class="btn" onclick="clearChat()">🗑️ Clear</button>
+        <button class="btn" onclick="toggleMute()" id="muteBtn">🔊</button>
+        <button class="btn" onclick="sleepNow()">😴 Sleep</button>
+    </div>
+
+    <script>
+        // ========== CONFIG ==========
+        const WAKE_WORDS = ['hey jango', 'jango', 'yo jango', 'okay jango'];
+        const STOP_WORDS = ['jango stop', 'stop jango', 'go to sleep jango', 'sleep jango', 'goodnight jango'];
+        const WAKE_REPLIES = ["Yo, what's good fam?", "Jango's here. Talk to me.", "Aight, I'm live. What's up?"];
+        const SLEEP_REPLIES = ["Aight, holla at me later.", "Jango out. Peace.", "Going dark. Say my name when you need me."];
+        
+        let isAwake = false, isProcessing = false, isMuted = false;
+        let recognition = null, synth = window.speechSynthesis, audioCtx = null;
+        
+        // ========== AUDIO ==========
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        function beep(freq, dur, type='sine') {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }
+        
+        // ========== SPEECH RECOGNITION ==========
+        function initSpeech() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) { alert("Your browser doesn't support voice. Use Safari or Chrome."); return null; }
+            
+            const rec = new SR();
+            rec.continuous = true;
+            rec.interimResults = true;
+            rec.lang = 'en-US';
+            
+            rec.onstart = () => updateUI();
+            rec.onend = () => {
+                updateUI();
+                if (isAwake) setTimeout(() => { if (isAwake && recognition && !isListening()) recognition.start(); }, 400);
+            };
+            rec.onerror = (e) => {
+                if (e.error === 'not-allowed') alert("Allow microphone in Settings > Safari > Microphone");
+                console.log('Mic error:', e.error);
+            };
+            rec.onresult = (e) => {
+                const res = e.results[e.results.length - 1];
+                const text = res[0].transcript.toLowerCase().trim();
+                
+                if (!isAwake) {
+                    for (let w of WAKE_WORDS) {
+                        if (text.includes(w)) {
+                            const cmd = text.substring(text.indexOf(w) + w.length).trim();
+                            wakeUp(cmd);
+                            return;
+                        }
+                    }
+                } else {
+                    for (let s of STOP_WORDS) {
+                        if (text.includes(s)) { sleepNow(); return; }
+                    }
+                    if (res.isFinal && !isProcessing && text.length > 2) {
+                        const clean = text.replace(/jango stop|stop jango|sleep jango/gi, '').trim();
+                        if (clean) handleCommand(clean);
+                    }
+                }
+            };
+            return rec;
+        }
+        function isListening() {
+            return recognition && recognition.state === 'listening'; // approximate
+        }
+        
+        // ========== CORE LOGIC ==========
+        function startJango() {
+            document.getElementById('startOverlay').classList.add('hidden');
+            initAudio();
+            recognition = initSpeech();
+            if (recognition) {
+                beep(520, 0.12);
+                recognition.start();
+            }
+        }
+        
+        function wakeUp(command) {
+            if (isAwake) return;
+            isAwake = true;
+            beep(880, 0.15, 'square');
+            const reply = WAKE_REPLIES[Math.floor(Math.random() * WAKE_REPLIES.length)];
+            if (command && command.length > 3) {
+                speak(reply, () => setTimeout(() => handleCommand(command), 400));
+            } else {
+                speak(reply);
+            }
+        }
+        
+        function sleepNow() {
+            if (!isAwake) return;
+            synth.cancel();
+            isAwake = false;
+            const reply = SLEEP_REPLIES[Math.floor(Math.random() * SLEEP_REPLIES.length)];
+            speak(reply, () => { if (recognition) try { recognition.stop(); } catch(e){} });
+        }
+        
+        async function handleCommand(text) {
+            if (isProcessing) return;
+            isProcessing = true;
+            updateUI();
+            addBubble(text, 'user');
+            
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: text})
+                });
+                const data = await res.json();
+                addBubble(data.reply, 'ai');
+                speak(data.reply);
+            } catch (e) {
+                addBubble("bruh, connection's weak. Try again.", 'ai');
+                speak("bruh, connection's weak. Try again.");
+            }
+            
+            isProcessing = false;
+            updateUI();
+        }
+        
+        // ========== TTS ==========
+        function speak(text, onDone) {
+            if (isMuted) { if (onDone) setTimeout(onDone, 800); return; }
+            synth.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-US'; u.rate = 1.15; u.pitch = 1.05;
+            const voices = synth.getVoices();
+            const v = voices.find(x => x.name.includes('Samantha')) 
+                   || voices.find(x => x.name.includes('Karen'))
+                   || voices.find(x => x.lang === 'en-US');
+            if (v) u.voice = v;
+            u.onend = () => { if (onDone) onDone(); };
+            synth.speak(u);
+        }
+        
+        // ========== UI ==========
+        function updateUI() {
+            const orb = document.getElementById('orb');
+            const main = document.getElementById('statusMain');
+            const sub = document.getElementById('statusSub');
+            orb.className = 'orb';
+            
+            if (isProcessing) {
+                orb.classList.add('thinking'); orb.textContent = '🧠';
+                main.textContent = 'Jango is thinking...'; sub.textContent = 'Bruh give me a sec';
+            } else if (!isAwake) {
+                orb.classList.add('sleeping'); orb.textContent = '😴';
+                main.textContent = 'Jango is sleeping'; sub.textContent = 'Say "Hey Jango" to wake me up';
+            } else {
+                orb.classList.add('listening'); orb.textContent = '🎙️';
+                main.textContent = 'Jango is listening'; sub.textContent = 'Talk to me fam';
+            }
+        }
+        
+        function addBubble(text, who) {
+            const area = document.getElementById('chatArea');
+            const b = document.createElement('div');
+            b.className = 'bubble ' + who;
+            b.textContent = text;
+            area.appendChild(b);
+            area.scrollTop = area.scrollHeight;
+        }
+        
+        function clearChat() {
+            fetch('/clear-memory', {method: 'POST'}).then(() => {
+                document.getElementById('chatArea').innerHTML = '';
+                speak("Memory wiped. Fresh start, fam.");
+            });
+        }
+        
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊';
+        }
+        
+        // Keep backend alive while page is open
+        setInterval(() => { if (isAwake) fetch('/health').catch(()=>{}); }, 4 * 60 * 1000);
+        
+        // Load voices
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+        }
+    </script>
+</body>
+</html>
