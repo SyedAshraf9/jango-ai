@@ -185,10 +185,10 @@
     </div>
     
     <div class="controls">
-        <button class="btn" onclick="clearChat()">🗑️ Clear</button>
-        <button class="btn" onclick="toggleMute()" id="muteBtn">🔊</button>
-        <button class="btn" onclick="sleepNow()">😴 Sleep</button>
-    </div>
+    <button class="btn btn-primary" onclick="startListening()">🎙️ Start</button>
+    <button class="btn" onclick="stopListening()">⏹️ Stop</button>
+    <button class="btn" onclick="clearChat()">🗑️ Clear</button>
+</div>
 
     <script>
         // ========== CONFIG ==========
@@ -197,7 +197,7 @@
         const WAKE_REPLIES = ["Yo, what's good fam?", "Jango's here. Talk to me.", "Aight, I'm live. What's up?"];
         const SLEEP_REPLIES = ["Aight, holla at me later.", "Jango out. Peace.", "Going dark. Say my name when you need me."];
         
-        let isAwake = false, isProcessing = false, isMuted = false;
+        let isAwake = true, isProcessing = false, isMuted = false;
         let recognition = null, synth = window.speechSynthesis, audioCtx = null;
         
         // ========== AUDIO ==========
@@ -245,15 +245,10 @@
                 const res = e.results[e.results.length - 1];
                 const text = res[0].transcript.toLowerCase().trim();
                 
-                if (!isAwake) {
-                    for (let w of WAKE_WORDS) {
-                        if (text.includes(w)) {
-                            const cmd = text.substring(text.indexOf(w) + w.length).trim();
-                            wakeUp(cmd);
-                            return;
-                        }
-                    }
-                } else {
+                if (res.isFinal && !isProcessing && text.length > 2) {
+                    handleCommand(text);
+                }
+                else {
                     for (let s of STOP_WORDS) {
                         if (text.includes(s)) { sleepNow(); return; }
                     }
@@ -351,7 +346,8 @@
                 main.textContent = 'Jango is thinking...'; sub.textContent = 'Bruh give me a sec';
             } else if (!isAwake) {
                 orb.classList.add('sleeping'); orb.textContent = '😴';
-                main.textContent = 'Jango is sleeping'; sub.textContent = 'Say "Hey Jango" to wake me up';
+                main.textContent = 'Press Start';
+                sub.textContent = 'Tap Start Listening to talk';
             } else {
                 orb.classList.add('listening'); orb.textContent = '🎙️';
                 main.textContent = 'Jango is listening'; sub.textContent = 'Talk to me fam';
@@ -386,6 +382,34 @@
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
         }
+        function startListening() {
+    isAwake = true;
+    updateUI();
+
+    if (!recognition) {
+        recognition = initSpeech();
+    }
+
+    try {
+        recognition.start();
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+function stopListening() {
+    isAwake = false;
+    updateUI();
+
+    if (recognition) {
+        try {
+            recognition.stop();
+        } catch (e) {}
+    }
+}
+
+// Start Jango
+window.addEventListener('load', startJango);
     </script>
 </body>
 </html>
